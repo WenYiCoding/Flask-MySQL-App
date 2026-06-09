@@ -18,6 +18,10 @@ def get_db_connection():
     )
     return connection
 
+@app.route('/', methods = ['GET'])
+def serve_dashboard():
+    return app.send_static_file('index.html')
+
 @app.route('/api/hello', methods=['GET'])
 def hello_world_api():
     return jsonify({

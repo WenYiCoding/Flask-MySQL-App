@@ -113,6 +113,46 @@ def get_all_applications():
             "status": "error",
             "message": f"Failed to retrieve data. Error: {str(error)}"
         }), 500
+    
+@app.route('/api/stats', methods=['GET'])
+def get_dashboard_stats():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT apply_status, COUNT(*) FROM applications GROUP BY apply_status;")
+        rows = cursor.fetchall()
+
+        cursor.execute("SELECT COUNT(*) FROM applications;")
+        total_count = cursor.fetchone()[0]
+
+        cursor.close()
+        conn.close()
+
+        stats = {
+            "Total": total_count,
+            "Applied": 0,
+            "Interviewing": 0,
+            "Offered": 0,
+            "Rejected": 0
+        }
+
+        for row in rows:
+            status_name = row[0]
+            status_count = row[1]
+            if status_name in stats:
+                    stats[status_name] = status_count
+
+        return jsonify({
+            "status": "success",
+            "data": stats
+        }), 200
+        
+    except Exception as error:
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to load stats. Error: {str(error)}"
+        }), 500
 
 @app.route('/api/update-status', methods=['PUT'])
 def update_application_status():

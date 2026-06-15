@@ -101,52 +101,110 @@
         .btn-delete:hover {
             background-color: #c0392b;
         }
+
+        .stats-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: #f8f9fa;
+            border: 1px solid #e1e8ed;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+
+        .stat-card p {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stat-card.highlight {
+            background-color: #ebf5fb;
+            border-color: #a9dfbf;
+        }
+
+        .stat-card.highlight p {
+            color: #2980b9;
+        }
     </style>
 </head>
 
 <body>
-<div class="container">
-<h1>💼 My Internship Applications Dashboard</h1>
-    
-    <div class="form-group">
-        <input type="text" id="companyInput" placeholder="Company Name (e.g., Dyson)">
-        <input type="text" id="jobInput" placeholder="Job Title (e.g., Backend Intern)">
-        <button onclick="addNewApplication()">Add Application</button>
-    </div>
+    <div class="container">
+        <h1>💼 My Internship Applications Dashboard</h1>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Company</th>
-                <th>Job Title</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="applicationsTableBody">
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>Total Applications</h3>
+                <p id="statTotal">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Applied</h3>
+                <p id="statApplied">0</p>
+            </div>
+            <div class="stat-card highlight">
+                <h3>Interviewing</h3>
+                <p id="statInterviewing">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Offered</h3>
+                <p id="statOffered">0</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <input type="text" id="companyInput" placeholder="Company Name (e.g., Dyson)">
+            <input type="text" id="jobInput" placeholder="Job Title (e.g., Backend Intern)">
+            <button onclick="addNewApplication()">Add Application</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Company</th>
+                    <th>Job Title</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="applicationsTableBody">
             </tbody>
-    </table>
-</div>
-<script>
-    const API_URL = "/api";
+        </table>
+    </div>
+    <script>
+        const API_URL = "/api";
 
-    async function loadDashboard() {
-        try {
-            const res = await fetch(`${API_URL}/applications`);
-            const result = await res.json();
+        async function loadDashboard() {
+            try {
+                const res = await fetch(`${API_URL}/applications`);
+                const result = await res.json();
 
-            const tbody = document.getElementById("applicationsTableBody");
-            tbody.innerHTML = "";
+                const tbody = document.getElementById("applicationsTableBody");
+                tbody.innerHTML = "";
 
-            const apps = result.data || result.message;
+                const apps = result.data || result.message;
 
-            apps.forEach(app => {
-                const tr = document.createElement('tr');
+                apps.forEach(app => {
+                    const tr = document.createElement('tr');
 
-                let bedgeClass = app.apply_status.toLowerCase() === 'interviewing' ? 'interviewing' : '';
+                    let bedgeClass = app.apply_status.toLowerCase() === 'interviewing' ? 'interviewing' : '';
 
-                tr.innerHTML = `
+                    tr.innerHTML = `
                     <td>${app.id}</td>
                     <td><strong>${app.company_name}</strong></td>
                     <td>${app.job_title}</td>
@@ -161,53 +219,73 @@
                     <td><button class="btn-delete" onclick="deleteApplication(${app.id})">Delete</button></td>
                 `;
 
-                tbody.appendChild(tr);
+                    tbody.appendChild(tr);
+                });
+
+                updateStatsCards();
+            }
+            catch (err) {
+                console.error("Dashboard failed to populate rows.", err);
+            }
+        }
+
+        async function updateStatsCards() {
+            try {
+                const res = await fetch(`${API_URL}/stats`);
+                const result = await res.json();
+
+                if (result.status === "success") {
+                    const stats = result.data;
+                    document.getElementById('statTotal').innerText = stats.Total;
+                    document.getElementById('statApplied').innerText = stats.Applied;
+                    document.getElementById('statInterviewing').innerText = stats.Interviewing;
+                    document.getElementById('statOffered').innerText = stats.Offered;
+                }
+            }
+            catch (err) {
+                console.error("Failed to refresh analytics boxes.", err);
+            }
+        }
+
+        async function addNewApplication() {
+            const company = document.getElementById('companyInput').value;
+            const job = document.getElementById('jobInput').value;
+
+            if (!company || !job) return alert("Please fill up both fields!");
+
+            await fetch(`${API_URL}/add-application`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ company_name: company, job_title: job })
             });
+
+            document.getElementById('companyInput').value = '';
+            document.getElementById('jobInput').value = '';
+            loadDashboard();
         }
-        catch(err) {
-            console.error("Dashboard failed to populate rows.", err);
+
+        async function updateStatus(id, newStatus) {
+            await fetch(`${API_URL}/update-status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, status: newStatus })
+            });
+            loadDashboard();
         }
-    }
 
-    async function addNewApplication() {
-        const company = document.getElementById('companyInput').value;
-        const job = document.getElementById('jobInput').value;
+        async function deleteApplication(id) {
+            if (!confirm("Are you sure you want to drop this record?")) return;
 
-        if (!company || !job) return alert("Please fill up both fields!");
+            await fetch(`${API_URL}/delete-application`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            });
+            loadDashboard();
+        }
 
-        await fetch(`${API_URL}/add-application`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ company_name: company, job_title: job })
-        });
-
-        document.getElementById('companyInput').value = '';
-        document.getElementById('jobInput').value = '';
         loadDashboard();
-    }
-
-    async function updateStatus(id, newStatus) {
-        await fetch(`${API_URL}/update-status`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id, status: newStatus })
-        });
-        loadDashboard();
-    }
-
-    async function deleteApplication(id) {
-        if (!confirm("Are you sure you want to drop this record?")) return;
-        
-        await fetch(`${API_URL}/delete-application`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id })
-        });
-        loadDashboard();
-    }
-
-    loadDashboard();
-</script>
+    </script>
 
 </body>
 

@@ -140,6 +140,34 @@
         .stat-card.highlight p {
             color: #2980b9;
         }
+
+        select.status-applied {
+            background-color: #fef9e7;
+            color: #b7950b;
+            border-color: #f9e79f;
+            font-weight: bold;
+        }
+
+        select.status-interviewing {
+            background-color: #ebf5fb;
+            color: #2471a3;
+            border-color: #a9cce3;
+            font-weight: bold;
+        }
+
+        select.status-offered {
+            background-color: #e8f8f5;
+            color: #117a65;
+            border-color: #a3e4d7;
+            font-weight: bold;
+        }
+
+        select.status-rejected {
+            background-color: #fadbd8;
+            color: #943126;
+            border-color: #f5b7b1;
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -204,20 +232,22 @@
 
                     let bedgeClass = app.apply_status.toLowerCase() === 'interviewing' ? 'interviewing' : '';
 
+                    const statusClass = app.apply_status.toLowerCase();
+
                     tr.innerHTML = `
-                    <td>${app.id}</td>
-                    <td><strong>${app.company_name}</strong></td>
-                    <td>${app.job_title}</td>
-                    <td>
-                        <select onchange="updateStatus(${app.id}, this.value)">
-                            <option value="Applied" ${app.apply_status === 'Applied' ? 'selected' : ''}>Applied</option>
-                            <option value="Interviewing" ${app.apply_status === 'Interviewing' ? 'selected' : ''}>Interviewing</option>
-                            <option value="Offered" ${app.apply_status === 'Offered' ? 'selected' : ''}>Offered</option>
-                            <option value="Rejected" ${app.apply_status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-                        </select>
-                    </td>
-                    <td><button class="btn-delete" onclick="deleteApplication(${app.id})">Delete</button></td>
-                `;
+                        <td>${app.id}</td>
+                        <td><strong>${app.company_name}</strong></td>
+                        <td>${app.job_title}</td>
+                        <td>
+                            <select class="status-${statusClass}" onchange="updateStatus(${app.id}, this.value)">
+                                <option value="Applied" ${app.apply_status === 'Applied' ? 'selected' : ''}>Applied</option>
+                                <option value="Interviewing" ${app.apply_status === 'Interviewing' ? 'selected' : ''}>Interviewing</option>
+                                <option value="Offered" ${app.apply_status === 'Offered' ? 'selected' : ''}>Offered</option>
+                                <option value="Rejected" ${app.apply_status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+                            </select>
+                        </td>
+                        <td><button class="btn-delete" onclick="deleteApplication(${app.id})">Delete</button></td>
+                    `;
 
                     tbody.appendChild(tr);
                 });
@@ -285,6 +315,21 @@
         }
 
         loadDashboard();
+
+        function setupKeyboardShortcuts() {
+            const fields = ['companyInput', 'jobInput'];
+
+            fields.forEach(id => {
+                document.getElementById(id).addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        addNewApplication();
+                    }
+                });
+            });
+        }
+        
+        setupKeyboardShortcuts();
     </script>
 
 </body>

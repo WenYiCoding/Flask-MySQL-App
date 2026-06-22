@@ -200,6 +200,50 @@
         .btn-export:hover {
             background-color: #27ae60;
         }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: #c0392b;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            background-color: #bdc3c7;
+            color: #333;
+        }
+
+        .btn-cancel:hover {
+            background-color: #95a5a6;
+        }
     </style>
 </head>
 
@@ -261,6 +305,7 @@
     </div>
     <script>
         const API_URL = "/api";
+        let applicationIdToDelete = null;
 
         async function loadDashboard() {
             try {
@@ -386,15 +431,33 @@
         }
 
         async function deleteApplication(id) {
-            if (!confirm("Are you sure you want to drop this record?")) return;
-
-            await fetch(`${API_URL}/delete-application`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id })
-            });
-            loadDashboard();
+            applicationIdToDelete = id;
+            document.getElementById('deleteModal').style.display = "flex";
         }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            applicationIdToDelete = null;
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            document.getElementById('confirmDeleteBtn').addEventListener('click', async function () {
+                if (!applicationIdToDelete) return;
+
+                try {
+                    await fetch(`${API_URL}/delete-application`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: applicationIdToDelete })
+                    });
+
+                    closeDeleteModal();
+                    loadDashboard();
+                } catch (err) {
+                    console.error("Failed to commit deletion pipeline.", err);
+                }
+            });
+        });
 
         loadDashboard();
 
@@ -441,6 +504,17 @@
             }
         }
     </script>
+
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>⚠️ Delete Application?</h3>
+            <p>Are you sure you want to permanently erase this internship entry? This action cannot be reversed.</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-delete" id="confirmDeleteBtn">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 

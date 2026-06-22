@@ -168,6 +168,38 @@
             border-color: #f5b7b1;
             font-weight: bold;
         }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e1e8ed;
+        }
+
+        .search-container input {
+            background-color: white;
+        }
+
+        .search-container select {
+            background-color: white;
+            min-width: 150px;
+        }
+
+        .btn-export {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            min-width: 120px;
+        }
+
+        .btn-export:hover {
+            background-color: #27ae60;
+        }
     </style>
 </head>
 
@@ -198,6 +230,19 @@
             <input type="text" id="companyInput" placeholder="Company Name (e.g., Dyson)">
             <input type="text" id="jobInput" placeholder="Job Title (e.g., Backend Intern)">
             <button onclick="addNewApplication()">Add Application</button>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" onkeyup="filterApplications()"
+                placeholder="🔍 Search by Company or Job Title...">
+            <select id="statusFilter" onchange="filterApplications()">
+                <option value="All">All Statuses</option>
+                <option value="Applied">Applied</option>
+                <option value="Interviewing">Interviewing</option>
+                <option value="Offered">Offered</option>
+                <option value="Rejected">Rejected</option>
+            </select>
+            <button class="btn-export" onclick="exportDataToJSON()">📥 Export Backup</button>
         </div>
 
         <table>
@@ -253,9 +298,34 @@
                 });
 
                 updateStatsCards();
+                filterApplications();
             }
             catch (err) {
                 console.error("Dashboard failed to populate rows.", err);
+            }
+        }
+
+        async function filterApplications() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const filterStatus = document.getElementById('statusFilter').value;
+
+            const tableBody = document.getElementById('applicationsTableBody');
+            const rows = tableBody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const companyText = row.cells[1].innerText.toLowerCase();
+                const jobText = row.cells[2].innerText.toLowerCase();
+                const currentStatus = row.cells[3].querySelector('select').value;
+
+                const matchesSearch = companyText.includes(searchText) || jobText.includes(searchText);
+                const matchesStatus = (filterStatus === 'All') || (currentStatus === filterStatus);
+
+                if (matchesSearch && matchesStatus) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
             }
         }
 
@@ -277,9 +347,21 @@
             }
         }
 
+        function cleanInputText(str) {
+            console.log(str);
+            if (!str) return '';
+            return str.trim()
+                .split(/\s+/)
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+        }
+
         async function addNewApplication() {
-            const company = document.getElementById('companyInput').value;
-            const job = document.getElementById('jobInput').value;
+            const rawCompany = document.getElementById('companyInput').value;
+            const rawJob = document.getElementById('jobInput').value;
+
+            const company = cleanInputText(rawCompany);
+            const job = cleanInputText(rawJob);
 
             if (!company || !job) return alert("Please fill up both fields!");
 
@@ -320,7 +402,7 @@
             const fields = ['companyInput', 'jobInput'];
 
             fields.forEach(id => {
-                document.getElementById(id).addEventListener('keydown', function(event) {
+                document.getElementById(id).addEventListener('keydown', function (event) {
                     if (event.key === 'Enter') {
                         event.preventDefault();
                         addNewApplication();
@@ -328,8 +410,36 @@
                 });
             });
         }
-        
+
         setupKeyboardShortcuts();
+
+        async function exportDataToJSON() {
+            try {
+                const res = await fetch(`${API_URL}/applications`);
+                const result = await res.json();
+                const apps = result.data || result.message;
+
+                if (!apps || apps.length == 0) {
+                    return alert("No data available to export yet!");
+                }
+
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(apps, null, 4));
+
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+
+                const today = new Date().toISOString().split('T')[0];
+                downloadAnchor.setAttribute('download', `internship_tracker_backup_${today}.json`);
+
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                document.body.removeChild(downloadAnchor);
+
+            } catch (err) {
+                console.error("Backup file generation engine encountered an error.", err);
+                alert("Failed to export backup data.");
+            }
+        }
     </script>
 
 </body>
